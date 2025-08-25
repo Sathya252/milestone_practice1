@@ -26,16 +26,11 @@ pipeline {
                 - hosts: webservers
                   become: true
                   tasks:
-                    - name: Install Java
-                      apt:
-                        name: openjdk-11-jre
-                        state: present
-                        update_cache: yes
-
                     - name: Install unzip
                       apt:
                         name: unzip
                         state: present
+                        update_cache: yes
 
                     - name: Download Tomcat 9
                       get_url:
