@@ -1,7 +1,8 @@
 - hosts: webservers
   become: true
   tasks:
-    - name: Install Java
+
+    - name: Install Java (OpenJDK 11)
       apt:
         name: openjdk-11-jre
         state: present
@@ -11,6 +12,13 @@
       apt:
         name: unzip
         state: present
+        update_cache: yes
+
+    - name: Ensure /opt/tomcat9 folder exists
+      file:
+        path: /opt/tomcat9
+        state: directory
+        mode: '0755'
 
     - name: Download Tomcat 9
       get_url:
@@ -31,7 +39,16 @@
     - name: Make Tomcat scripts executable
       command: chmod +x /opt/tomcat9/bin/*.sh
 
-    - name: Deploy WAR
-      copy:
-        src: /var/lib/jenkins/workspace/${JOB_NAME}/target/addressbook.war
-        dest: /opt/tomcat9/webapps/addressbook.war
+    - name: Verify Tomcat installation
+      stat:
+        path: /opt/tomcat9/bin/startup.sh
+      register: tomcat_bin
+
+    - name: Fail if Tomcat not installed
+      fail:
+        msg: "Tomcat is not installed! Run installation tasks first."
+      when: not tomcat_bin.stat.exists
+
+    - name: Start Tomcat
+      shell: /opt/tomcat9/bin/startup.sh
+      when: tomcat_bin.stat.exists
