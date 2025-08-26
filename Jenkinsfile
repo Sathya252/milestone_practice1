@@ -4,13 +4,14 @@ pipeline {
     environment {
         WAR_FILE = "target/addressbook.war"
         TOMCAT_HOME = "/opt/tomcat9"
-        INVENTORY = "/home/devops/.ssh/addressbook_repo/inventory.ini"
+        INVENTORY = "addressbook_repo/inventory.ini"
     }
 
     stages {
+
         stage('Checkout Code') {
             steps {
-                git branch: 'master', url: 'https://github.com/Sathya252/milestone_practice.git'
+                git branch: 'master', url: 'https://github.com/Sathya252/milestone_practice1.git'
             }
         }
 
@@ -20,16 +21,19 @@ pipeline {
             }
         }
 
-        stage('Install Tomcat via Ansible') {
+        stage('Install and Start Tomcat via Ansible') {
             steps {
-                sh "ansible-playbook -i ${INVENTORY} /home/devops/.ssh/addressbook_repo/tomcat.yml"
+                sh 'ansible-playbook -i ${INVENTORY} tomcat.yml'
             }
         }
 
-        stage('Restart Tomcat') {
+        stage('Deploy WAR to Tomcat') {
             steps {
-                sh "ansible webservers -i ${INVENTORY} -m shell -a '${TOMCAT_HOME}/bin/shutdown.sh || true' --become"
-                sh "ansible webservers -i ${INVENTORY} -m shell -a '${TOMCAT_HOME}/bin/startup.sh' --become"
+                sh """
+                ansible webservers -i ${INVENTORY} -m copy -a "src=${WAR_FILE} dest=${TOMCAT_HOME}/webapps/addressbook.war" --become
+                ansible webservers -i ${INVENTORY} -m shell -a "${TOMCAT_HOME}/bin/shutdown.sh || true" --become
+                ansible webservers -i ${INVENTORY} -m shell -a "${TOMCAT_HOME}/bin/startup.sh" --become
+                """
             }
         }
     }
